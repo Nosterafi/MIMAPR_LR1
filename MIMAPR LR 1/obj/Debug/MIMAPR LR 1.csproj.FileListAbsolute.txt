@@ -5,3 +5,10 @@ D:\MIMAPR LR 1\MIMAPR LR 1\obj\Debug\MIMAPR LR 1.csproj.AssemblyReference.cache
 D:\MIMAPR LR 1\MIMAPR LR 1\obj\Debug\MIMAPR LR 1.csproj.CoreCompileInputs.cache
 D:\MIMAPR LR 1\MIMAPR LR 1\obj\Debug\MIMAPR LR 1.exe
 D:\MIMAPR LR 1\MIMAPR LR 1\obj\Debug\MIMAPR LR 1.pdb
+D:\МИМАПР ЛР 7\MIMAPR LR 1\MIMAPR LR 1\bin\Debug\MIMAPR LR 1.exe.config
+D:\МИМАПР ЛР 7\MIMAPR LR 1\MIMAPR LR 1\bin\Debug\MIMAPR LR 1.exe
+D:\МИМАПР ЛР 7\MIMAPR LR 1\MIMAPR LR 1\bin\Debug\MIMAPR LR 1.pdb
+D:\МИМАПР ЛР 7\MIMAPR LR 1\MIMAPR LR 1\obj\Debug\MIMAPR LR 1.csproj.AssemblyReference.cache
+D:\МИМАПР ЛР 7\MIMAPR LR 1\MIMAPR LR 1\obj\Debug\MIMAPR LR 1.csproj.CoreCompileInputs.cache
+D:\МИМАПР ЛР 7\MIMAPR LR 1\MIMAPR LR 1\obj\Debug\MIMAPR LR 1.exe
+D:\МИМАПР ЛР 7\MIMAPR LR 1\MIMAPR LR 1\obj\Debug\MIMAPR LR 1.pdb
