@@ -23,6 +23,8 @@ namespace MIMAPR_LR_1
 
     class SimplexMethodSolwer
     {
+        private List<int> artifcials {  get; set; } = new List<int>();
+
         public TaskType TaskType { get; set; } = TaskType.Max;
 
         public List<double> TargetFunc { get; set; } = new List<double>();
@@ -57,6 +59,10 @@ namespace MIMAPR_LR_1
 
                 taskTable = GetNewTaskTable(TargetFunc, taskTable, guideRow, guideCol, basis);
             }
+
+            foreach (var b in basis)
+                if (artifcials.Contains(b))
+                    throw new InvalidOperationException("Данная задача не имеет решений.");
 
             var result = new double[dimension];
             
@@ -295,8 +301,11 @@ namespace MIMAPR_LR_1
             }
 
             for (int i = 0; i < artificialRows.Count; i++)
+            {
                 TargetFunc.Add(double.MinValue);
-
+                artifcials.Add(TargetFunc.Count - 1);
+            }
+                
             for (int i = 0; i < Restrictions.Count; i++)
             {
                 for (int j = 0; j < artificialRows.Count; j++)
