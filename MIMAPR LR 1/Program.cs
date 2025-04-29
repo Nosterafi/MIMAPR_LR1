@@ -1,590 +1,276 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
-using System.Runtime.CompilerServices;
 
 namespace MIMAPR_LR_1
 {
+    interface IReadOnlyRestriction
+    {
+        IReadOnlyList<double> Coefs { get; }
+        RestrictionType Type { get; }
+        double RightPart { get; }
+    }
+
     internal class Program
     {
         static void Main(string[] args)
         {
-            var a = SimplexMethod.Solve(Input.LinearProgrammingProblem());
+            var a = Input.LinearProgrammingProblem().Solve();
         }
     }
 
     static class SimplexMethod
     {
-        public static double[] Solve(this LinearProgrammingProblem problem)
+        public static ProblemSolution[] Solve(this LinearProgrammingProblem problem)
         {
-            var basis = new int[problem.RestrictionsCount];
+            if(problem == null)
+                throw new ArgumentNullException(nameof(problem));
 
-            for(uint i = 0; i < problem.RestrictionsCount; i++)
-            {
-                try
-                {
-                    basis[i] = (int)problem.GetBasisVariable(i);
-                }
-                catch (InvalidOperationException)
-                {
-                    problem.AddArtificial(i);
-                    basis[i] = problem.VariablesCount - 1;
-                }
-            }
+            if (problem.ObjectiveFunc.Count == 0)
+                throw new ArgumentException("Задача не содержит переменных");
 
-            var table = problem.InitProblemTable(basis);
+            problem = problem.ConvertToMaxType().ConvertToCanon();
 
-            throw new NotImplementedException();
+            return null;
         }
-
-        //public double GetFuncValue(double[] arguments)
-        //{
-        //    var result = (double)0;
-        //    var multiple = TaskType == TaskType.Max ? 1 : -1;
-
-        //    for (int i = 0; i < arguments.Length; i++)
-        //        result += arguments[i] * TargetFunc[i] * multiple;
-
-        //    return result;
-        //}
-
-
-
-        //private int[] GetFirstBasis(int dimension)
-        //{
-        //    var result = new int[Restrictions.Count];
-
-        //    for (int i = 0; i < Restrictions.Count; i++)
-        //    {
-        //        bool foundBasis = false;
-
-        //        for (int j = 0; j < dimension; j++)
-        //        {
-        //            if (Math.Abs(Restrictions[i].Coefs[j] - 1.0) < 0.0001)
-        //            {
-        //                bool isUnitColumn = true;
-
-        //                for (int k = 0; k < Restrictions.Count; k++)
-        //                {
-        //                    if (k != i && Math.Abs(Restrictions[k].Coefs[j]) > 0.0001)
-        //                    {
-        //                        isUnitColumn = false;
-        //                        break;
-        //                    }
-        //                }
-
-        //                if (isUnitColumn)
-        //                {
-        //                    result[i] = j;
-        //                    foundBasis = true;
-        //                    break;
-        //                }
-        //            }
-        //        }
-
-        //        if (!foundBasis)
-        //        {
-        //            for (int j = dimension; j < Restrictions[i].Coefs.Count; j++)
-        //            {
-        //                if (Math.Abs(Restrictions[i].Coefs[j] - 1.0) < 0.0001)
-        //                {
-        //                    bool isUnitColumn = true;
-
-        //                    for (int k = 0; k < Restrictions.Count; k++)
-        //                    {
-        //                        if (k != i && Math.Abs(Restrictions[k].Coefs[j]) > 0.0001)
-        //                        {
-        //                            isUnitColumn = false;
-        //                            break;
-        //                        }
-        //                    }
-
-        //                    if (isUnitColumn)
-        //                    {
-        //                        result[i] = j;
-        //                        foundBasis = true;
-        //                        break;
-        //                    }
-        //                }
-        //            }
-        //        }
-
-        //        if (!foundBasis)
-        //        {
-        //            throw new InvalidOperationException($"Не удалось найти базисную переменную для ограничения {i}");
-        //        }
-        //    }
-
-        //    return result;
-        //}
-
-        //private int GetGuideRowIndex(double[][] taskTable, int guideColIndex)
-        //{
-        //    var min = double.MaxValue;
-        //    var result = 0;
-        //    double rowValue;
-
-        //    for (int i = 0; i < taskTable.Length; i++)
-        //        if (taskTable[i][guideColIndex] != 0)
-        //        {
-        //            rowValue = taskTable[i][1] / taskTable[i][guideColIndex];
-
-        //            if (rowValue > 0 && rowValue < min)
-        //            {
-        //                min = rowValue;
-        //                result = i;
-        //            }
-        //        }
-
-        //    return result;
-        //}
-
-        //private int GetGuideColIndex(double[] simplexDivs)
-        //{
-        //    var min = double.MaxValue;
-        //    var result = 0;
-
-        //    for (int i = 0; i < simplexDivs.Length; i++)
-        //        if (simplexDivs[i] < min)
-        //        {
-        //            min = simplexDivs[i];
-        //            result = i + 2;
-        //        }
-
-        //    return result;
-        //}
-
-        //private double[][] GetNewTaskTable(List<double> targetCoefs, double[][] oldTable, int guideRow, int guideCol, int[] newBasis)
-        //{
-        //    var result = new double[oldTable.Length][];
-        //    double multiple;
-
-        //    for (int i = 0; i < oldTable.Length; i++)
-        //    {
-        //        result[i] = new double[oldTable[i].Length];
-
-        //        if (i != guideRow)
-        //        {
-        //            multiple = -oldTable[i][guideCol] / oldTable[guideRow][guideCol];
-
-        //            for (int j = 1; j < oldTable[i].Length; j++)
-        //            {
-        //                result[i][j] = oldTable[guideRow][j] * multiple + oldTable[i][j];
-        //            }
-        //        }
-        //        else
-        //        {
-        //            oldTable[i].CopyTo(result[i], 0);
-        //            var guideElem = oldTable[guideRow][guideCol];
-
-        //            for (int j = 0; j < result[i].Length; j++)
-        //                result[i][j] /= guideElem;
-        //        }
-
-        //        result[i][0] = TargetFunc[newBasis[i]];
-        //    }
-
-        //    return result;
-        //}
-
-        //private double[] GetSimplexDivs(List<double> targetCoefs, double[][] taskTable)
-        //{
-        //    var result = new double[targetCoefs.Count];
-
-        //    for (int i = 0; i < result.Length; i++)
-        //    {
-        //        var scalarSum = (double)0;
-
-        //        for (int j = 0; j < taskTable.Length; j++)
-        //            scalarSum += taskTable[j][0] * taskTable[j][i + 2];
-
-        //        result[i] = scalarSum - targetCoefs[i];
-        //    }
-
-        //    return result;
-        //}
-
-        //private void AddArtificial()
-        //{
-        //    int originalVarCount = TargetFunc.Count;
-        //    List<int> artificialRows = new List<int>();
-
-        //    for (int i = 0; i < Restrictions.Count; i++)
-        //    {
-        //        bool hasBasis = false;
-
-        //        for (int j = 0; j < Restrictions[i].Coefs.Count; j++)
-        //        {
-        //            if (Math.Abs(Restrictions[i].Coefs[j] - 1.0) < 0.0001)
-        //            {
-        //                bool isUnitColumn = true;
-
-        //                for (int k = 0; k < Restrictions.Count; k++)
-        //                {
-        //                    if (k != i && Math.Abs(Restrictions[k].Coefs[j]) > 0.0001)
-        //                    {
-        //                        isUnitColumn = false;
-        //                        break;
-        //                    }
-        //                }
-
-        //                if (isUnitColumn)
-        //                {
-        //                    hasBasis = true;
-        //                    break;
-        //                }
-        //            }
-        //        }
-
-        //        if (!hasBasis)
-        //        {
-        //            artificialRows.Add(i);
-        //        }
-        //    }
-
-        //    for (int i = 0; i < artificialRows.Count; i++)
-        //    {
-        //        TargetFunc.Add(double.MinValue);
-        //        objectiveFunc.Add(TargetFunc.Count - 1);
-        //    }
-
-        //    for (int i = 0; i < Restrictions.Count; i++)
-        //    {
-        //        for (int j = 0; j < artificialRows.Count; j++)
-        //        {
-        //            if (i == artificialRows[j])
-        //                Restrictions[i].Coefs.Add(1);
-        //            else
-        //                Restrictions[i].Coefs.Add(0);
-        //        }
-        //    }
-        //}
-
-        //private void ConvertToCanon()
-        //{
-        //    var balanceCount = Restrictions.Where(x => x.Type != RestructionType.Equal).Count();
-        //    var balancePos = 0;
-        //    Restriction restr;
-
-        //    for (int i = 0; i < balanceCount; i++)
-        //        TargetFunc.Add(0);
-
-        //    for (int i = 0; i < Restrictions.Count; i++)
-        //    {
-        //        restr = Restrictions[i];
-
-        //        if (restr.Type == RestructionType.Equal)
-        //        {
-        //            for (int j = 0; j < balanceCount; j++)
-        //                restr.Coefs.Add(0);
-
-        //            continue;
-        //        }
-
-        //        for (int j = 0; j < balanceCount; j++)
-        //        {
-        //            if (j == balancePos)
-        //            {
-        //                if (restr.Type == RestructionType.MoreEqual)
-        //                {
-        //                    restr.Coefs.Add(-1);
-        //                }
-        //                else
-        //                    restr.Coefs.Add(1);
-        //            }
-        //            else
-        //                restr.Coefs.Add(0);
-        //        }
-
-        //        balancePos++;
-        //        Restrictions[i].Type = RestructionType.Equal;
-        //    }
-        //}
     }
 
     class LinearProgrammingProblem
     {
-        private readonly List<double> objectiveFunc = new List<double>();
+        private readonly List<double> _objectiveFunc = new List<double>();
 
-        private readonly Restriction[] restrictions;
+        private readonly List<Restriction> _restrictions = new List<Restriction>();
+
+        public IReadOnlyList<double> ObjectiveFunc => _objectiveFunc;
+
+        public IReadOnlyList<IReadOnlyRestriction> Restrictions => _restrictions;
 
         public TaskType TaskType { get; set; } = TaskType.Max;
 
-        public int VariablesCount => objectiveFunc.Count;
-
-        public int RestrictionsCount => restrictions.Length;
-
-        public LinearProgrammingProblem(uint varCount, uint restrCount)
-        {
-            restrictions = new Restriction[restrCount];
-
-            for (int i = 0; i < varCount; i++)
-                objectiveFunc.Add(0);
-
-            for (int i = 0; i < restrCount; i++)
-                restrictions[i] = new Restriction(varCount);    
-        }
-
-        public LinearProgrammingProblem SetObjectiveCoef(uint index, double value)
-        {
-            if (index >= objectiveFunc.Count)
-                throw new IndexOutOfRangeException();
-
-            objectiveFunc[(int)index] = value;
-            return this;
-        }
-
-        public LinearProgrammingProblem SetRestrictionCoef(uint restrIndex, uint coefIndex, double value)
-        {
-            if (restrIndex >= restrictions.Length)
-                throw new ArgumentException($"Ограничение с индексом '{restrIndex}' не существует");
-
-            if (coefIndex >= objectiveFunc.Count)
-                throw new ArgumentException($"Коэффициент с индексом '{restrIndex}' не существует");
-
-            restrictions[restrIndex].SetCoef(coefIndex, value);
-            return this;
-        }
-
-        public LinearProgrammingProblem SetRestrictionType(uint index, RestructionType value)
-        {
-            if (index >= restrictions.Length)
-                throw new IndexOutOfRangeException();
-
-            restrictions[index].Type = value;
-            return this;
-        }
-
-        public LinearProgrammingProblem SetRestrictionRightPart(uint index, double value)
-        {
-            if (index >= restrictions.Length)
-                throw new IndexOutOfRangeException();
-
-            restrictions[index].RightPart = value;
-            return this;
-        }
-
         public LinearProgrammingProblem ConvertToMaxType()
         {
-            if (TaskType == TaskType.Max) return this;
-
-            for (int i = 0; i < VariablesCount; i++)
-                objectiveFunc[i] *= -1;
-
+            var factor = TaskType == TaskType.Min ? -1 : 1;
             TaskType = TaskType.Max;
+
+            for(int i = 0; i < _objectiveFunc.Count; i++)
+                _objectiveFunc[i] *= factor;
+
             return this;
         }
 
-        public LinearProgrammingProblem AddBalances()
+        public LinearProgrammingProblem ConvertToCanon()
         {
-            for (int i = 0; i < restrictions.Length; i++)
+            RestrictionType currentType;
+
+            for (int i = 0; i < _restrictions.Count; i++)
             {
-                if (restrictions[i].Type == RestructionType.Equal)
+                currentType = _restrictions[i].Type;
+
+                if (currentType == RestrictionType.Equal)
                     continue;
 
-                objectiveFunc.Add(0);
-
-                for (int j = 0; j < restrictions.Length; j++)
-                {
-                    if (i == j)
-                    {
-                        if (restrictions[j].Type == RestructionType.MoreEqual)
-                            restrictions[j].AddVariable(-1);
-                        else restrictions[j].AddVariable(1);
-
-                        restrictions[j].Type = RestructionType.Equal;
-
-                        continue;
-                    }
-
-                    restrictions[j].AddVariable(0);
-                }
+                AddVariable(0);
+                _restrictions[i].SetCoef((uint)_objectiveFunc.Count - 1, currentType == RestrictionType.LessEqual ? 1 : -1);
             }
 
             return this;
         }
 
-        public uint GetBasisVariable(uint restrIndex)
+        public LinearProgrammingProblem AddVariable(double coef)
         {
-            var basisFlag = true;
+            if (double.IsNaN(coef))
+                throw new ArgumentException("Коэффициент не может быть NaN");
 
-            for (uint i = 0; i < VariablesCount; i++)
-            {
-                for (uint j = 0; j < restrictions.Length; j++)
-                {
-                    if (restrIndex == j && restrictions[j].GetCoef(i) != 1)
-                    {
-                        basisFlag = !basisFlag;
-                        break;
-                    }
-                        
-                    if(restrIndex != j && restrictions[j].GetCoef(i) != 0)
-                    {
-                        basisFlag = !basisFlag;
-                        break;
-                    }
-                }
+            if (double.IsInfinity(coef))
+                throw new ArgumentException("Коэффициент не может быть бесконечностью");
 
-                if (basisFlag) return i;
+            _objectiveFunc.Add(coef);
 
-                basisFlag = true;
-            }
-
-            throw new InvalidOperationException("В данном ограничении ни одна переменная не может быть базисной");
-        }
-
-        public LinearProgrammingProblem AddArtificial(uint restrIndex)
-        {
-            if (restrIndex >= RestrictionsCount)
-                throw new IndexOutOfRangeException();
-
-            objectiveFunc.Add(double.MinValue);
-
-            for(int i = 0; i < restrictions.Length; i++)
-            {
-                if(i == restrIndex) restrictions[i].AddVariable(1);
-                else restrictions[i].AddVariable(0);
-            }
+            foreach (var restr in _restrictions)
+                restr.AddVariable(0);
 
             return this;
         }
 
-        public double[,] InitProblemTable(int[] basis)
+        public LinearProgrammingProblem AddRestriction(IReadOnlyRestriction restr)
         {
-            var result = new double[RestrictionsCount, VariablesCount + 1];
+            if (!(restr is Restriction))
+                throw new ArgumentException("restr должен быть объектом класса Restriction");
 
-            for (int i = 0; i < result.GetLength(0); i++)
-            {
-                result[i, 0] = restrictions[i].RightPart;
+            if (restr.Coefs.Count != _objectiveFunc.Count)
+                throw new ArgumentException("Ограничение должно иметь столько же переменных, сколько и целевая функция");
 
-                for (uint j = 1; j < result.GetLength(1); j++)
-                    result[i, j] = restrictions[i].GetCoef(j - 1);
-            }
-
-            return result;
+            _restrictions.Add((Restriction)restr);
+            return this;
         }
     }
 
-    class Restriction
+    class ProblemSolution
     {
-        private readonly List<double> coefs;
+        public readonly IReadOnlyList<double> ArgumentsValues;
 
-        public RestructionType Type { get; set; } = RestructionType.Equal;
+        public readonly double FuncValue;
 
-        public double RightPart { get; set; } = 0;
-
-        public int VariablesCount => coefs.Count;
-
-        public Restriction(uint varCount) => coefs = new double[varCount].ToList();
-
-        public void AddVariable(double coef) => coefs.Add(coef);
-
-        public double GetCoef(uint index)
+        public ProblemSolution(double[] argsValues, double funcValue)
         {
-            if (index >= VariablesCount)
-                throw new IndexOutOfRangeException();
+            ArgumentsValues = argsValues;
+            FuncValue = funcValue;
+        }
+    }
 
-            return coefs[(int)index];
+    class Restriction : IReadOnlyRestriction
+    {
+        private readonly List<double> _coefs = new List<double>();
+
+        public IReadOnlyList<double> Coefs => _coefs;
+
+        public RestrictionType Type { get; set; } = RestrictionType.Equal;
+
+        public double RightPart { get; set; }
+
+        public Restriction AddVariable(double coef)
+        {
+            if (double.IsNaN(coef))
+                throw new ArgumentException("Коэффициент не может равнятся NaN", nameof(coef));
+
+            _coefs.Add(coef);
+            return this;
         }
 
-        public void SetCoef(uint index, double value)
+        public Restriction SetCoef(uint index, double value)
         {
-            if (index >= VariablesCount)
-                throw new IndexOutOfRangeException();
+            if (double.IsNaN(value))
+                throw new ArgumentException("Коэффициент не может быть NaN");
 
-            coefs[(int)index] = value;
+            if (double.IsInfinity(value))
+                throw new ArgumentException("Коэффициент не может быть бесконечностью");
+
+            if (index >= _coefs.Count)
+                throw new ArgumentException($"Коэффициент с индексом {index} не существует");
+
+            _coefs[(int)index] = value;
+            return this;
         }
     }
 
     static class Input
     {
+        private readonly static Type[] numberTypes = new Type[]
+        {
+            typeof(int), typeof(double), typeof(decimal),
+            typeof(float), typeof(long), typeof(short),
+            typeof(byte), typeof(sbyte), typeof(ulong),
+            typeof(ushort), typeof(uint)
+        };
+
         public static LinearProgrammingProblem LinearProgrammingProblem()
         {
-            Console.WriteLine("Введите количество переменных задачи");
+            Console.Write("Количество переменных задачи: ");
             var varCount = InputNumber<uint>();
 
-            Console.WriteLine("\nВведете количество ограничений");
+            Console.Write("Введете количество ограничений: ");
             var restrCount = InputNumber<uint>();
 
-            var result = new LinearProgrammingProblem(varCount, restrCount);
+            var result = new LinearProgrammingProblem();
 
-            Console.WriteLine("\nВведите коэффициенты целевой функции");
+            Console.WriteLine("Введите коэффициенты целевой функции");
 
             for (uint i = 0; i < varCount; i++)
-                result.SetObjectiveCoef(i, InputNumber<double>());
+                result.AddVariable(InputNumber<double>());
 
-            Console.WriteLine("\nВведите тип задачи: 'Min' или 'Max'");
+            Console.Write("Тип задачи ('Min' или 'Max'):");
             result.TaskType = InputTaskType();
 
-            for(uint i = 0; i < restrCount; i++)
+            for (uint i = 0; i < restrCount; i++)
             {
-                Console.WriteLine($"\nВведите коэффициенты { i + 1 }-ого ограничения");
-
-                for(uint j = 0; j < varCount; j++)
-                    result.SetRestrictionCoef(i, j, InputNumber<double>());
-
-                Console.WriteLine($"\nВведите знак { i + 1 }-ого ограничения: '=', '>=' или '<='");
-                result.SetRestrictionType(i, InputRestructionType());
-
-                Console.WriteLine($"\nВведите правую часть {i + 1}-ого ограничения");
-                result.SetRestrictionRightPart(i, InputNumber<double>());
+                Console.WriteLine($"\nВвод {i + 1}-ого ограничения");
+                result.AddRestriction(InputRestriction(varCount));
             }
 
             return result;
         }
 
+        public static Restriction InputRestriction(uint varCount)
+        {
+            var restriction = new Restriction();
+
+            Console.WriteLine("\nВведите коэффициенты:");
+            for (int i = 0; i < varCount; i++)
+            {
+                Console.Write($"Коэффициент x{i + 1}: ");
+                restriction.AddVariable(InputNumber<double>());
+            }
+
+            Console.WriteLine("\nВведите тип ограничения: '=', '>=' или '<='");
+            restriction.Type = InputRestrictionType();
+
+            Console.WriteLine("\nВведите правую часть ограничения:");
+            restriction.RightPart = InputNumber<double>();
+
+            return restriction;
+        }
+
         public static TaskType InputTaskType()
         {
-            string typeStr;
-
             while (true)
             {
-                typeStr = Console.ReadLine().ToLower();
+                Console.Write("Введите тип задачи ('max' или 'min'): ");
+                var input = Console.ReadLine()?.ToLower();
 
-                if (typeStr.Equals("max")) return TaskType.Max;
-                if (typeStr.Equals("min")) return TaskType.Min;
-
-                Console.WriteLine($"'{typeStr}' не является типом ограничения. Повторите ввод");
+                switch (input)
+                {
+                    case "max": return TaskType.Max;
+                    case "min": return TaskType.Min;
+                    default:
+                        Console.WriteLine($"'{input}' не является типом задачи. Повторите ввод");
+                        break;
+                }
             }
         }
 
-        private static RestructionType InputRestructionType()
+        private static RestrictionType InputRestrictionType()
         {
-            string typeStr;
-
             while (true)
             {
-                typeStr = Console.ReadLine();
+                Console.Write("Тип ограничения (=, >=, <=): ");
+                var input = Console.ReadLine();
 
-                if (typeStr.Equals("=")) return RestructionType.Equal;
-                if (typeStr.Equals(">=")) return RestructionType.MoreEqual;
-                if (typeStr.Equals("<=")) return RestructionType.LessEqual;
-
-                Console.WriteLine($"'{typeStr}' не является знаком ограничения. Повторите ввод");
+                switch (input)
+                {
+                    case "=": return RestrictionType.Equal;
+                    case ">=": return RestrictionType.MoreEqual;
+                    case "<=": return RestrictionType.LessEqual;
+                    default:
+                        Console.WriteLine($"'{input}' не является допустимым ограничением");
+                        break;
+                }
             }
         }
 
-        private static NumT InputNumber<NumT>()
+        private static T InputNumber<T>() where T : struct, IConvertible
         {
-            var parse = typeof(NumT).GetMethod("Parse", new Type[] { typeof(string) }) ?? 
-                throw new InvalidOperationException("NumT должен быть числовым типом");
+            if (!numberTypes.Contains(typeof(T)))
+                throw new NotSupportedException($"Тип {typeof(T).Name} не поддерживается");
 
             while (true)
             {
                 try
                 {
-                    return (NumT)parse.Invoke(null, new object[] { Console.ReadLine() });
+                    return (T)Convert.ChangeType(Console.ReadLine(), typeof(T));
                 }
-                catch (TargetInvocationException e) when (e.InnerException is FormatException)
+                catch (FormatException)
                 {
-                    Console.WriteLine("Введено не число. Повторите ввод");
+                    Console.WriteLine($"Введено не число типа {typeof(T)}. Повторите ввод:"); ;
+                }
+                catch (OverflowException)
+                {
+                    Console.WriteLine("Число слишком большое/маленькое. Повторите ввод:");
                 }
             }
         }
     }
 
-    enum TaskType { Min, Max }
+    enum TaskType { Max, Min }
 
-    enum RestructionType { Equal, MoreEqual, LessEqual }
+    enum RestrictionType {  Equal, LessEqual, MoreEqual }
 }
